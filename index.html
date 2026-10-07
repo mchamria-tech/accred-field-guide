@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ACCRED — Interactive Field Guide</title>
+<style>
+  :root {
+    --navy: #1b2a4a;
+    --navy-2: #243656;
+    --ink: #1a1a1a;
+    --slate: #4a5568;
+    --cream: #f7f4ee;
+    --paper: #fffdf8;
+    --gold: #b0893e;
+    --gold-2: #d4b483;
+    --line: #e4dfd4;
+    --green: #1f6b4a;
+    --green-bg: #e7f3ec;
+    --amber: #8a5a12;
+    --amber-bg: #f8f1e3;
+    --red: #8c2f2f;
+    --red-bg: #f8e8e8;
+    --grey: #8b909a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  header.bar {
+    background: var(--navy);
+    color: #f4efe6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    border-bottom: 3px solid var(--gold);
+  }
+  .brand { letter-spacing: 0.18em; font-size: 13px; font-weight: 700; }
+  .brand span { color: var(--gold-2); font-weight: 500; letter-spacing: 0.08em; margin-left: 10px; }
+  nav.tabs { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  nav.tabs button {
+    background: transparent;
+    color: #d9d3c7;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  nav.tabs button.on { color: white; border-bottom-color: var(--gold); }
+  nav.tabs button small { display: block; font-size: 10px; letter-spacing: 0.12em; color: var(--gold-2); }
+  main { max-width: 1040px; margin: 0 auto; padding: 36px 22px 64px; }
+  .kicker { letter-spacing: 0.16em; font-size: 11px; color: var(--gold); text-transform: uppercase; }
+  h1 { font-weight: 500; font-size: 42px; line-height: 1.1; margin: 8px 0 12px; color: var(--navy); }
+  h2 { font-size: 22px; font-weight: 600; color: var(--navy); margin: 28px 0 8px; }
+  p.lead { font-size: 18px; line-height: 1.45; color: var(--slate); max-width: 680px; }
+  p { line-height: 1.5; }
+  .panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 18px 20px;
+    margin: 14px 0;
+  }
+  .grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; }
+  .loop { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
+  .loop div, .chip {
+    background: var(--navy);
+    color: #f4efe6;
+    padding: 12px;
+    min-height: 84px;
+  }
+  .loop small, .chip small { color: var(--gold-2); letter-spacing: 0.08em; font-size: 11px; }
+  .warn {
+    border-left: 3px solid var(--gold);
+    padding: 8px 12px;
+    color: var(--navy);
+    font-style: italic;
+    background: #f3ecdf;
+  }
+  label.q { display: block; margin: 12px 0 4px; font-size: 15px; }
+  select, input[type="range"] { width: 100%; font-family: inherit; }
+  select { padding: 8px; border: 1px solid var(--line); background: white; }
+  .score {
+    font-size: 56px;
+    color: var(--navy);
+    line-height: 1;
+  }
+  .score em { font-size: 16px; font-style: normal; color: var(--slate); }
+  .gate { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .pass { color: var(--green); }
+  .fail { color: var(--red); }
+  .unk { color: var(--amber); }
+  .files { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  button.file, button.step {
+    text-align: left;
+    font-family: inherit;
+    background: white;
+    border: 1px solid var(--line);
+    padding: 12px;
+    cursor: pointer;
+  }
+  button.file.on, button.step.on { border-color: var(--navy); background: #f3f6fa; }
+  .mark { display: inline-block; padding: 2px 8px; font-size: 12px; letter-spacing: 0.06em; }
+  .g { background: var(--green-bg); color: var(--green); }
+  .y { background: var(--amber-bg); color: var(--amber); }
+  .r { background: var(--red-bg); color: var(--red); }
+  .line { display: flex; align-items: center; gap: 0; margin: 18px 0; flex-wrap: wrap; }
+  .dotwrap { display: flex; align-items: center; }
+  .dot {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #c8c4bb; border: 2px solid var(--navy);
+  }
+  .dot.glow { background: var(--gold); box-shadow: 0 0 0 4px rgba(176,137,62,0.35); }
+  .dot.done { background: var(--navy); }
+  .seg { width: 36px; height: 2px; background: #c8c4bb; }
+  .seg.done { background: var(--navy); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; background: var(--navy); color: white; padding: 8px; font-weight: 500; }
+  td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  footer.note { margin-top: 28px; font-size: 13px; color: var(--slate); }
+  .hidden { display: none; }
+  @media (max-width: 800px) {
+    .grid, .loop, .files { grid-template-columns: 1fr; }
+    h1 { font-size: 32px; }
+    nav.tabs button small { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">ACCRED <span>FIELD GUIDE</span></div>
+  <nav class="tabs" id="nav"></nav>
+</header>
+<main id="app"></main>
+<script>
+const TABS = [
+  { id: "overview", n: "01", label: "Overview" },
+  { id: "lab", n: "02", label: "Readiness lab" },
+  { id: "trust", n: "03", label: "Evidence & trust" },
+  { id: "path", n: "04", label: "Path & bodies" },
+  { id: "roadmap", n: "05", label: "Roadmap" },
+  { id: "source", n: "06", label: "Source & notes" }
+];
+
+const state = {
+  tab: "overview",
+  years: 8,
+  faculty: 18,
+  core: 14,
+  cohorts: 2,
+  nba: "yes",
+  intl: "inbound",
+  file: "accounts",
+  step: 2
+};
+
+const files = {
+  accounts: {
+    name: "Audited accounts, last year",
+    mark: "y",
+    label: "Yellow — needs changes",
+    why: "Right kind of file. BGA Validation wants a current audit. Accreditation and EQUIS resources usually want a multi-year series, and EQUIS annexes want the figures in euros with the FX rate stated. One year is not the series."
+  },
+  nba: {
+    name: "NBA SAR used as Assurance of Learning",
+    mark: "y",
+    label: "Yellow — useful, not the loop",
+    why: "The report is real evidence of national QA. It is not a degree-level competency goal with a direct measure and a closed loop. Keep it for national standing. Do not mark AACSB Standard 5 green."
+  },
+  strategy: {
+    name: "Strategy PDF, signed, current",
+    mark: "g",
+    label: "Green — kept, not a visit pass",
+    why: "Mission, horizon, and owner are in the file. Green means the slot can hold it. AACSB, BGA, and EQUIS have not seen it. A banner on the review says so."
+  },
+  cv: {
+    name: "One visiting faculty CV, tagged as core",
+    mark: "r",
+    label: "Red — wrong artefact for this slot",
+    why: "EQUIS core faculty are people for whom the school is the principal employer. Visiting staff do not fill the 25 FTE floor, and they do not fill AACSB’s usual 16 full-time floor. The file stays. Re-tag it."
+  }
+};
+
+function recommend() {
+  const gates = {
+    bgaVal: state.years >= 3,
+    bgaAcc: state.years >= 5 && state.cohorts >= 3,
+    aacFac: state.faculty >= 16,
+    eqYrs: state.years >= 10,
+    eqFac: state.core >= 25,
+    eqIntl: state.intl === "reputation"
+  };
+  let first = "National tidy-up, then BGA Validation";
+  let why = "Default for a mid-tier Indian school. Later bodies stay grey until their gates are true.";
+  if (!gates.bgaVal) {
+    first = "National foundation only";
+    why = "Under 3 years, BGA Validation is not open. Use the years to build the file set.";
+  } else if (gates.eqYrs && gates.eqFac && gates.eqIntl && state.nba === "yes") {
+    first = "EQUIS may run in parallel with AACSB";
+    why = "Hard EQUIS gates in this example pass. That is rare for the target segment. Still not a prediction of an award.";
+  } else if (gates.aacFac && gates.bgaAcc) {
+    first = "BGA Accreditation, AACSB later";
+    why = "Faculty floor for AACSB can pass while EQUIS stays blocked. Do not start EQUIS first.";
+  }
+  const score = Math.round(
+    Math.min(state.years, 12) / 12 * 14 +
+    Math.min(state.faculty, 30) / 30 * 22 +
+    Math.min(state.core, 30) / 30 * 18 +
+    (state.cohorts >= 3 ? 14 : state.cohorts * 4) +
+    (state.nba === "yes" ? 12 : state.nba === "partial" ? 6 : 2) +
+    (state.intl === "reputation" ? 16 : state.intl === "partners" ? 9 : 4)
+  );
+  return { gates, first, why, score: Math.min(score, 96) };
+}
+
+function markClass(m) { return m === "g" ? "g" : m === "y" ? "y" : "r"; }
+
+function renderNav() {
+  document.getElementById("nav").innerHTML = TABS.map(t =>
+    `<button class="${state.tab === t.id ? "on" : ""}" data-tab="${t.id}"><small>${t.n}</small>${t.label}</button>`
+  ).join("");
+  document.querySelectorAll("#nav button").forEach(b => b.onclick = () => { state.tab = b.dataset.tab; draw(); });
+}
+
+function overview() {
+  return `
+    <div class="kicker">01 / The big picture</div>
+    <h1>From national standing to a first international filing.</h1>
+    <p class="lead">A school workspace that tells a coordinator where they are, what is still missing, and which body to open next. India mid-tier first. The agencies stay the agencies.</p>
+    <p class="warn">This guide condenses the product blueprint. It does not file on myAccreditation, OX, or the BGA portal, and a green file is not a pass.</p>
+    <div class="grid">
+      <div class="panel">
+        <div class="kicker">The core loop</div>
+        <div class="loop">
+          <div><small>01</small><br>Answer</div>
+          <div><small>02</small><br>See the path</div>
+          <div><small>03</small><br>Upload</div>
+          <div><small>04</small><br>Review</div>
+          <div><small>05</small><br>Dean signs</div>
+        </div>
+        <p>Twenty-four questions, a running count, then one glowing line. Clerks fill slots. Faculty add their own evidence. The Dean signs the quiz and a monthly note. Comments become tasks.</p>
+      </div>
+      <div class="panel">
+        <div class="kicker">Who it is for</div>
+        <p><b>For.</b> Indian business schools roughly ranks 25–75, later the same segment in SE Asia, who want BGA, then AMBA if the MBA is post-experience, then AACSB or EQUIS.</p>
+        <p><b>Not for.</b> Schools that already run a mature accreditation office, or a school that wants this product to become their NBA or NAAC project system. National files are an evidence layer, not the product.</p>
+      </div>
+    </div>
+    <h2>What the user is told first</h2>
+    <p>National tidy-up, then BGA membership, Validation, Accreditation. AACSB and EQUIS stay later unless the answers already clear their gates. Eighteen full-time faculty can be enough to discuss AACSB and still fail EQUIS, which wants 25 core faculty for whom the school is the main employer.</p>
+  `;
+}
+
+function lab() {
+  const r = recommend();
+  const g = r.gates;
+  const row = (name, ok, failText) => `<div class="gate"><span>${name}</span><span class="${ok ? "pass" : "fail"}">${ok ? "Open in this example" : failText}</span></div>`;
+  return `
+    <div class="kicker">02 / Readiness lab</div>
+    <h1>A score that is not a pass mark.</h1>
+    <p class="lead">Invented school. Move the answers. The recommendation uses the same gates as the instrument: years, cohorts, faculty, national standing, international reputation.</p>
+    <div class="grid">
+      <div class="panel">
+        <label class="q">Years in operation — ${state.years}</label>
+        <input type="range" min="1" max="20" value="${state.years}" data-k="years" />
+        <label class="q">Full-time faculty, excluding visiting — ${state.faculty}</label>
+        <input type="range" min="4" max="40" value="${state.faculty}" data-k="faculty" />
+        <label class="q">Core faculty, school is principal employer — ${state.core}</label>
+        <input type="range" min="4" max="40" value="${state.core}" data-k="core" />
+        <label class="q">Graduated cohorts on one current programme — ${state.cohorts}</label>
+        <input type="range" min="0" max="6" value="${state.cohorts}" data-k="cohorts" />
+        <label class="q">NBA or equivalent national programme review</label>
+        <select data-k="nba">
+          <option value="yes" ${state.nba==="yes"?"selected":""}>Yes, recent</option>
+          <option value="partial" ${state.nba==="partial"?"selected":""}>In progress</option>
+          <option value="no" ${state.nba==="no"?"selected":""}>No</option>
+        </select>
+        <label class="q">International picture</label>
+        <select data-k="intl">
+          <option value="inbound" ${state.intl==="inbound"?"selected":""}>Inbound students only</option>
+          <option value="partners" ${state.intl==="partners"?"selected":""}>A few exchange partners</option>
+          <option value="reputation" ${state.intl==="reputation"?"selected":""}>Recognised outside the country</option>
+        </select>
+        <p class="warn">I don’t know is a real answer in the product. Here, leaving a control low is the stand-in. Submit stays locked in the app until all 24 required questions have an answer.</p>
+      </div>
+      <div class="panel">
+        <div class="kicker">Example result</div>
+        <div class="score">${r.score}<em> / 100</em></div>
+        <p><b>${r.first}.</b> ${r.why}</p>
+        ${row("BGA Validation (3 years)", g.bgaVal, "Blocked")}
+        ${row("BGA Accreditation (5 years, 3 cohorts)", g.bgaAcc, "Blocked")}
+        ${row("AACSB faculty floor (16 full-time)", g.aacFac, "Blocked")}
+        ${row("EQUIS years (10)", g.eqYrs, "Blocked")}
+        ${row("EQUIS core faculty (25)", g.eqFac, "Blocked")}
+        ${row("EQUIS reputation beyond inbound", g.eqIntl, "Not recommended")}
+      </div>
+    </div>
+  `;
+}
+
+function trust() {
+  const f = files[state.file];
+  const cards = Object.entries(files).map(([id, file]) =>
+    `<button class="file ${state.file===id?"on":""}" data-file="${id}"><span class="mark ${markClass(file.mark)}">${file.mark==="g"?"Green":file.mark==="y"?"Yellow":"Red"}</span><br>${file.name}</button>`
+  ).join("");
+  return `
+    <div class="kicker">03 / Evidence and trust</div>
+    <h1>One file, many bodies. A colour, not a verdict.</h1>
+    <p class="lead">The workspace is also the filing cabinet. Upload against the glowing dot. The review says what is wrong. The school keeps the file either way.</p>
+    <div class="files">${cards}</div>
+    <div class="panel">
+      <span class="mark ${markClass(f.mark)}">${f.label}</span>
+      <p>${f.why}</p>
+      <p class="warn">Agencies have not seen this file. A coordinator can override the colour. The override needs a reason and stays in the log.</p>
+    </div>
+    <h2>Who may touch what</h2>
+    <table>
+      <tr><th>Person</th><th>May</th><th>May not</th></tr>
+      <tr><td>Coordinator</td><td>Quiz, map, tags, overrides</td><td>Invent a path a hard gate forbids</td></tr>
+      <tr><td>Clerk</td><td>Answers and uploads, one slot at a time</td><td>Change the recommended path</td></tr>
+      <tr><td>Faculty</td><td>Own CV, publications, teaching evidence</td><td>See other people’s private files</td></tr>
+      <tr><td>Dean</td><td>Sign the quiz and the monthly note</td><td>Retype tables</td></tr>
+    </table>
+  `;
+}
+
+function path() {
+  const labels = ["National", "BGA member", "Validation", "Accreditation", "AMBA?", "AACSB", "EQUIS"];
+  const dots = labels.map((label, i) => {
+    const cls = i < state.step ? "done" : i === state.step ? "glow" : "";
+    const seg = i === 0 ? "" : `<div class="seg ${i <= state.step ? "done" : ""}"></div>`;
+    return `<div class="dotwrap">${seg}<div><div class="dot ${cls}"></div><div style="font-size:12px;margin-top:6px;width:72px">${label}</div></div></div>`;
+  }).join("");
+  const copy = [
+    "National files only. No international filing is open yet.",
+    "Membership before Validation. The app does not take the BGA fee.",
+    "Validation is the usual glow for a school that is 3–5 years in, with accounts and a degree.",
+    "Accreditation needs five years and three graduated cohorts on one programme.",
+    "AMBA appears only if the MBA is post-experience. Otherwise this dot stays off.",
+    "AACSB 2020 is the default for new initial visits in 2026–27. The 2026 Global Standards wait.",
+    "EQUIS stays grey until 10 years, 25 core faculty, and a reputation beyond inbound students."
+  ];
+  return `
+    <div class="kicker">04 / Path and bodies</div>
+    <h1>One line. The current dot glows.</h1>
+    <p class="lead">Later bodies are visible and grey. Click along the line. This is the default order, not a promise that every school finishes it.</p>
+    <div class="line">${dots}</div>
+    <div class="panel">
+      <div class="kicker">Now glowing</div>
+      <p><b>${labels[state.step]}.</b> ${copy[state.step]}</p>
+      <p>Panel on a real dot: what the body asks for, status, missing file, owner, and a button that asks the assistant to explain it in plain language.</p>
+    </div>
+    <p>
+      ${labels.map((label, i) => `<button class="step ${state.step===i?"on":""}" data-step="${i}">${label}</button>`).join(" ")}
+    </p>
+  `;
+}
+
+function roadmap() {
+  return `
+    <div class="kicker">05 / Roadmap</div>
+    <h1>What a school can use, in the order it gets built.</h1>
+    <p class="lead">The blueprint is a numbered schema. A demo can stop after the assistant and still be honest. Billing waits until a price exists.</p>
+    <table>
+      <tr><th>Slice</th><th>What the user gets</th><th>Still blocked until</th></tr>
+      <tr><td>Account and roles</td><td>Coordinator, clerk, faculty, Dean</td><td>Nothing structural</td></tr>
+      <tr><td>Readiness</td><td>24 questions, running count, score, first body</td><td>Dean signature before filing</td></tr>
+      <tr><td>Map</td><td>Glowing line, grey later bodies, unconfirmed ticks</td><td>Evidence slots, or the line is decorative</td></tr>
+      <tr><td>Files</td><td>Upload, green / yellow / red, reuse tags</td><td>Human override if the review is wrong</td></tr>
+      <tr><td>Assistant</td><td>Answers from this school’s quiz and files</td><td>Approved standards notes, not the open web</td></tr>
+      <tr><td>BGA, then AACSB, then EQUIS</td><td>Checklists and fee cards with an edition date</td><td>AMBA criteria file is thinner — do not invent it</td></tr>
+      <tr><td>Monthly watch</td><td>Bulletin after a human accepts a fee or rule change</td><td>Operator on a box that can reach the three sites</td></tr>
+      <tr><td>Paid launch</td><td>Not in this guide</td><td>Price, privacy text, and a real school contract</td></tr>
+    </table>
+    <h2>Support, not a second accreditor</h2>
+    <p>Tickets can carry a snapshot of the map. Expert visits are a scheduling note and a four-week promise field. Payment to advisors is not built into the workspace.</p>
+  `;
+}
+
+function source() {
+  return `
+    <div class="kicker">06 / Source and notes</div>
+    <h1>The blueprint, without the sprawl.</h1>
+    <p class="lead">Canonical product file is WHAT.md, version 0.1, 1 September 2026. Quantum Monk Private Limited. Document owner Mukund Chamria. This site adapts that file and the user-journey PDF. It does not implement the workspace.</p>
+    <div class="panel">
+      <div class="kicker">Identity that is locked</div>
+      <p>Working name ACCRED. Self-hosted workspace. Prepare, do not file, visit, or award. Default journey national → BGA → AMBA if the MBA is post-experience → AACSB and/or EQUIS. AACSB edition default 2020 for new initial visits in 2026–27. Progress UI is a line with dots. No cartoons.</p>
+    </div>
+    <h2>Where the detail lives</h2>
+    <table>
+      <tr><th>Topic</th><th>Source</th></tr>
+      <tr><td>Identity, non-goals, warnings</td><td>WHAT.md §1</td></tr>
+      <tr><td>24 questions, weights, hard gates</td><td>Readiness_Questionnaire_Instrument.md</td></tr>
+      <tr><td>BGA Validation and Accreditation tree</td><td>BGA checklist</td></tr>
+      <tr><td>AACSB 2020 process and standards</td><td>AACSB checklist. 2026 Global parked</td></tr>
+      <tr><td>EQUIS stages 0–9 and ten chapters</td><td>EQUIS checklist. 2026 fee card</td></tr>
+      <tr><td>Assistant answers and refusal rules</td><td>Chatbot_QA_Knowledge_Base.md</td></tr>
+      <tr><td>Green / yellow / red and monthly snapshot</td><td>App modules file, WHAT.md §18</td></tr>
+      <tr><td>User-facing walkthrough</td><td>ACCRED_User_Flow.pdf</td></tr>
+    </table>
+    <h2>Do not treat these as product claims</h2>
+    <p class="warn">Stack is proposed, not owner-locked. Price is unknown. LLM vendor and region are open. Pilot school is unnamed. AMBA official criteria are thinner than the other trees. EQUIS pages are often captcha-gated, so a failed monthly fetch alerts the operator instead of skipping.</p>
+    <p>Calculator values on the Readiness tab are invented examples. Evidence colours simulate the review rules and save nothing.</p>
+  `;
+}
+
+const views = { overview, lab, trust, path, roadmap, source };
+
+function draw() {
+  renderNav();
+  document.getElementById("app").innerHTML = views[state.tab]() + `<footer class="note">ACCRED field guide · adapted from WHAT.md v0.1 · Quantum Monk Private Limited · Product concept, not the workspace</footer>`;
+  document.querySelectorAll("[data-k]").forEach(el => {
+    el.onchange = el.oninput = () => {
+      state[el.dataset.k] = el.type === "range" ? Number(el.value) : el.value;
+      draw();
+    };
+  });
+  document.querySelectorAll("[data-file]").forEach(el => el.onclick = () => { state.file = el.dataset.file; draw(); });
+  document.querySelectorAll("[data-step]").forEach(el => el.onclick = () => { state.step = Number(el.dataset.step); draw(); });
+}
+draw();
+</script>
+</body>
+</html>
